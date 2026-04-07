@@ -1,0 +1,13 @@
+{
+    "name": "x-research-skills",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "X(Twitter) search research using xAI (Grok) x_search",
+    "scripts": {
+        "grok:context": "tsx scripts/grok_context_research.ts"
+    },
+    "devDependencies": {
+        "tsx": "^4.19.0"
+    }
+}
