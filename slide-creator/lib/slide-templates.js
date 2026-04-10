@@ -14,6 +14,7 @@ const DEFAULT_THEME = {
   navy:    '1B3254',
   navyL:   '2A4A75',
   teal:    '2E7D8E',
+  red:     'C45B5B',
   white:   'FFFFFF',
   bgLight: 'F5F7FA',
   bgAlt:   'EEF1F6',
@@ -50,7 +51,7 @@ function addHeader(s, title, sub = '', C = DEFAULT_THEME) {
   }
 }
 
-function addFooter(s, num = '', total = '', label = 'eudAImonia', C = DEFAULT_THEME) {
+function addFooter(s, num = '', total = '', label = '', C = DEFAULT_THEME) {
   s.addShape('rect', { x: 0, y: SH - 0.32, w: SW, h: 0.32, fill: { color: C.bgLight }, line: { color: C.border, pt: 0.5 } });
   s.addText(label, {
     x: 0.3, y: SH - 0.30, w: 5.0, h: 0.26,
@@ -70,6 +71,65 @@ function addMsgBar(s, text, C = DEFAULT_THEME, y = 4.84) {
   s.addText(text, {
     x: 0.45, y, w: 9.1, h: 0.42,
     fontSize: 12, bold: true, color: C.white, fontFace: C.font, valign: 'middle', margin: 0
+  });
+}
+
+function _getChartLayout(msgBar = '', insights) {
+  const chartH = msgBar ? 3.5 : 4.0;
+  if (insights && insights.length) {
+    return {
+      chartX: 0.28,
+      chartY: 1.08,
+      chartW: 5.66,
+      chartH,
+      panelX: 6.12,
+      panelY: 1.08,
+      panelW: 3.6,
+      panelH: chartH,
+    };
+  }
+  return {
+    chartX: 0.28,
+    chartY: 1.08,
+    chartW: 9.44,
+    chartH,
+  };
+}
+
+function _addInsightPanel(s, x, y, w, h, insights, title = 'Key Insights', C = DEFAULT_THEME) {
+  const items = (insights || []).filter(Boolean).slice(0, 5);
+  s.addShape('rect', {
+    x, y, w, h,
+    fill: { color: C.bgLight },
+    line: { color: C.border, pt: 1 },
+    shadow: mkShadow()
+  });
+  s.addShape('rect', {
+    x, y, w, h: 0.42,
+    fill: { color: C.navy },
+    line: { color: C.navy }
+  });
+  s.addText(title || 'Key Insights', {
+    x: x + 0.14, y: y + 0.02, w: w - 0.28, h: 0.36,
+    fontSize: 12, bold: true, color: C.white, fontFace: C.font, valign: 'middle', margin: 0
+  });
+
+  if (!items.length) return;
+
+  const topY = y + 0.58;
+  const rowGap = 0.09;
+  const itemH = Math.min(0.56, (h - 0.72 - rowGap * (items.length - 1)) / items.length);
+  items.forEach((insight, i) => {
+    const iy = topY + i * (itemH + rowGap);
+    s.addShape('ellipse', {
+      x: x + 0.16, y: iy + 0.12, w: 0.10, h: 0.10,
+      fill: { color: C.teal },
+      line: { color: C.teal }
+    });
+    s.addText(String(insight), {
+      x: x + 0.32, y: iy, w: w - 0.48, h: itemH,
+      fontSize: 11, color: C.textMid, fontFace: C.font, valign: 'top', margin: 0
+    });
   });
 }
 
@@ -420,17 +480,17 @@ function matrix2x2(pres, s, data, C = DEFAULT_THEME) {
 
 /**
  * barChartSlide - 縦棒グラフ
- * data: { title, sub?, chartData: [{name, labels, values}], colors?, msgBar? }
+ * data: { title, sub?, chartData: [{name, labels, values}], colors?, insights?, insightTitle?, msgBar? }
  */
 function barChartSlide(pres, s, data, C = DEFAULT_THEME) {
-  const { title, sub = '', colors, msgBar = '', footerLabel, footerNum } = data;
+  const { title, sub = '', colors, insights, insightTitle, msgBar = '', footerLabel, footerNum } = data;
   const chartData = data.chartData || data.series || [];
   s.background = { color: C.white };
   addHeader(s, title, sub, C);
 
-  const chartH = msgBar ? 3.5 : 4.0;
+  const layout = _getChartLayout(msgBar, insights);
   s.addChart(pres.charts.BAR, chartData, {
-    x: 0.28, y: 1.08, w: 9.44, h: chartH, barDir: 'col',
+    x: layout.chartX, y: layout.chartY, w: layout.chartW, h: layout.chartH, barDir: 'col',
     chartColors: colors || [C.navy, C.teal, C.navyL, C.gold],
     chartArea: { fill: { color: C.bgLight }, roundedCorners: false },
     catAxisLabelColor: C.textMid,
@@ -442,6 +502,9 @@ function barChartSlide(pres, s, data, C = DEFAULT_THEME) {
     showLegend: chartData.length > 1,
     legendPos: 'b',
   });
+  if (insights && insights.length) {
+    _addInsightPanel(s, layout.panelX, layout.panelY, layout.panelW, layout.panelH, insights, insightTitle || 'Key Insights', C);
+  }
 
   if (msgBar) addMsgBar(s, msgBar, C);
   addFooter(s, footerNum, '', footerLabel, C);
@@ -451,7 +514,7 @@ function barChartSlide(pres, s, data, C = DEFAULT_THEME) {
 
 /**
  * bigStat - 大数字カード（横並び最大3枚）
- * data: { title, sub?, stats: [{value, label, sub?}], msgBar? }
+ * data: { title, sub?, stats: [{value, label, sub?, detail?}], msgBar? }
  */
 function bigStat(pres, s, data, C = DEFAULT_THEME) {
   const { title, sub = '', stats = [], msgBar = '', footerLabel, footerNum } = data;
@@ -467,6 +530,7 @@ function bigStat(pres, s, data, C = DEFAULT_THEME) {
 
   stats.slice(0, n).forEach((stat, i) => {
     const x = SX + i * (CW + GAP);
+    const hasDetail = !!stat.detail;
     s.addShape('rect', { x, y: SY, w: CW, h: CH, fill: { color: C.bgLight }, line: { color: C.border, pt: 1 }, shadow: mkShadow() });
     // ティールアクセントバー（左端）
     s.addShape('rect', { x, y: SY, w: 0.08, h: CH, fill: { color: C.teal }, line: { color: C.teal } });
@@ -476,7 +540,13 @@ function bigStat(pres, s, data, C = DEFAULT_THEME) {
     s.addText(stat.label || '', { x: x + 0.18, y: SY + 2.2, w: CW - 0.26, h: 0.5, fontSize: 13, color: C.textMid, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
     // サブ
     if (stat.sub) {
-      s.addText(stat.sub, { x: x + 0.18, y: SY + 2.72, w: CW - 0.26, h: 0.38, fontSize: 11, italic: true, color: C.textMute, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
+      s.addText(stat.sub, { x: x + 0.18, y: SY + 2.72, w: CW - 0.26, h: hasDetail ? 0.30 : 0.38, fontSize: 11, italic: true, color: C.textMute, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
+    }
+    if (hasDetail) {
+      s.addText(stat.detail, {
+        x: x + 0.18, y: SY + 3.02, w: CW - 0.26, h: Math.max(CH - 3.12, 0.28),
+        fontSize: 10, color: C.textMid, fontFace: C.font, align: 'center', valign: 'top', margin: 0
+      });
     }
   });
 
@@ -560,7 +630,7 @@ function cover(pres, s, data, C = DEFAULT_THEME) {
 
   // フッター（表紙専用）
   s.addShape('rect', { x: 0, y: SH - 0.32, w: SW, h: 0.32, fill: { color: '0A1B32' }, line: { color: '0A1B32' } });
-  s.addText(company || 'eudAImonia', { x: 0.3, y: SH - 0.30, w: 3.0, h: 0.26, fontSize: 9, color: '8899BB', fontFace: C.font, margin: 0 });
+  s.addText(company || '', { x: 0.3, y: SH - 0.30, w: 3.0, h: 0.26, fontSize: 9, color: '8899BB', fontFace: C.font, margin: 0 });
 }
 
 /**
@@ -629,8 +699,9 @@ function tableOfContents(pres, s, data, C = DEFAULT_THEME) {
   s.background = { color: C.white };
   addHeader(s, title, '', C);
 
-  const SX = 0.28, SY = 1.1, itemH = 0.72, GAP = 0.1;
-  const maxItems = Math.min(items.length, 6);
+  const SX = 0.28, SY = 1.02, GAP = 0.08;
+  const maxItems = Math.min(items.length, 7);
+  const itemH = Math.min(0.72, (5.2 - SY - GAP * (maxItems - 1)) / maxItems);
 
   items.slice(0, maxItems).forEach((item, i) => {
     const y = SY + i * (itemH + GAP);
@@ -922,7 +993,7 @@ function vennDiagram(pres, s, data, C = DEFAULT_THEME) {
       }
     });
     if (overlap) {
-      s.addText(overlap.label || '', { x: 4.1, y: cy - 0.28, w: 1.4, h: 0.56, fontSize: 11, bold: true, color: C.navy, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
+      s.addText(overlap.label || '', { x: 4.1, y: cy - 0.28, w: 1.4, h: 0.56, fontSize: 11, bold: true, color: C.white, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
       if (overlap.body) s.addText(overlap.body, { x: 4.1, y: cy + 0.28, w: 1.4, h: 0.4, fontSize: 9, color: C.textMid, fontFace: C.font, align: 'center', valign: 'top', margin: 0 });
     }
   } else if (n === 3) {
@@ -937,7 +1008,7 @@ function vennDiagram(pres, s, data, C = DEFAULT_THEME) {
       s.addText(c.label, { x: positions[i].x - 0.8, y: positions[i].y - 0.22, w: 1.6, h: 0.44, fontSize: 11, bold: true, color: C.navy, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
     });
     if (overlap) {
-      s.addText(overlap.label || '', { x: 4.35, y: cy - 0.22, w: 1.3, h: 0.44, fontSize: 10, bold: true, color: C.navy, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
+      s.addText(overlap.label || '', { x: 4.35, y: cy - 0.22, w: 1.3, h: 0.44, fontSize: 10, bold: true, color: C.white, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
     }
   }
 
@@ -1019,6 +1090,8 @@ function timeline(pres, s, data, C = DEFAULT_THEME) {
   const SX = 0.28, lineY = msgBar ? 2.7 : 2.9;
   const totalW = 9.44;
   const step = totalW / n;
+  const bodyH = 0.28;
+  const bodyGap = 0.12;
 
   // 基準線
   s.addShape('rect', { x: SX, y: lineY - 0.04, w: totalW, h: 0.08, fill: { color: C.border }, line: { color: C.border } });
@@ -1028,24 +1101,27 @@ function timeline(pres, s, data, C = DEFAULT_THEME) {
     const hl = !!item.highlight;
     const dotC = hl ? C.teal : C.navy;
     const dotR = hl ? 0.22 : 0.17;
+    const tw = step - 0.1, tx = cx - step / 2 + 0.05;
 
     // ドット
     s.addShape('ellipse', { x: cx - dotR, y: lineY - dotR, w: dotR * 2, h: dotR * 2, fill: { color: dotC }, line: { color: dotC } });
 
-    // 上部（奇数）・下部（偶数）で交互配置
+    // 上部（偶数）・下部（奇数）で交互配置
     const above = i % 2 === 0;
     if (above) {
-      s.addText(item.date, { x: cx - step / 2 + 0.05, y: lineY - 1.1, w: step - 0.1, h: 0.28, fontSize: 10, bold: true, color: dotC, fontFace: C.font, align: 'center', margin: 0 });
-      s.addText(item.label, { x: cx - step / 2 + 0.05, y: lineY - 0.8, w: step - 0.1, h: 0.5, fontSize: 12, bold: true, color: C.navy, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
+      // 上側: date → label → (body) → ドット
+      s.addText(item.date, { x: tx, y: lineY - 1.45, w: tw, h: 0.25, fontSize: 10, bold: true, color: dotC, fontFace: C.font, align: 'center', margin: 0 });
+      s.addText(item.label, { x: tx, y: lineY - 1.2, w: tw, h: 0.3, fontSize: 12, bold: true, color: C.navy, fontFace: C.font, align: 'center', valign: 'top', margin: 0 });
       if (item.body) {
-        s.addText(item.body, { x: cx - step / 2 + 0.05, y: lineY - 0.3, w: step - 0.1, h: 0.28, fontSize: 9, color: C.textMute, fontFace: C.font, align: 'center', margin: 0 });
+        s.addText(item.body, { x: tx, y: lineY - 0.88, w: tw, h: 0.25, fontSize: 9, color: C.textMute, fontFace: C.font, align: 'center', margin: 0 });
       }
     } else {
-      s.addText(item.date, { x: cx - step / 2 + 0.05, y: lineY + 0.28, w: step - 0.1, h: 0.28, fontSize: 10, bold: true, color: dotC, fontFace: C.font, align: 'center', margin: 0 });
-      s.addText(item.label, { x: cx - step / 2 + 0.05, y: lineY + 0.56, w: step - 0.1, h: 0.5, fontSize: 12, bold: true, color: C.navy, fontFace: C.font, align: 'center', valign: 'middle', margin: 0 });
+      // 下側: ドット → (body) → date → label
       if (item.body) {
-        s.addText(item.body, { x: cx - step / 2 + 0.05, y: lineY + 1.08, w: step - 0.1, h: 0.28, fontSize: 9, color: C.textMute, fontFace: C.font, align: 'center', margin: 0 });
+        s.addText(item.body, { x: tx, y: lineY + 0.3, w: tw, h: 0.25, fontSize: 9, color: C.textMute, fontFace: C.font, align: 'center', margin: 0 });
       }
+      s.addText(item.date, { x: tx, y: lineY + 0.55, w: tw, h: 0.25, fontSize: 10, bold: true, color: dotC, fontFace: C.font, align: 'center', margin: 0 });
+      s.addText(item.label, { x: tx, y: lineY + 0.8, w: tw, h: 0.3, fontSize: 12, bold: true, color: C.navy, fontFace: C.font, align: 'center', valign: 'top', margin: 0 });
     }
   });
 
@@ -1218,11 +1294,12 @@ function memberGrid(pres, s, data, C = DEFAULT_THEME) {
   addHeader(s, title, sub, C);
 
   const n = Math.min(members.length, 4);
-  const colW = n <= 2 ? 4.5 : 2.25;
-  const cols = n <= 2 ? n : Math.ceil(n / 2);
+  const cols = n <= 2 ? n : 2;
   const rows = n <= 2 ? 1 : 2;
   const cardH = rows === 1 ? 3.6 : 1.75;
   const SX = 0.28, SY = 1.1, GAP = 0.12;
+  const contentW = 9.44;
+  const colW = cols > 0 ? (contentW - GAP * (cols - 1)) / cols : contentW;
 
   members.slice(0, n).forEach((m, i) => {
     const col = i % cols;
@@ -1319,17 +1396,17 @@ function containment(pres, s, data, C = DEFAULT_THEME) {
 
 /**
  * lineChartSlide - 折れ線グラフ
- * data: { title, sub?, chartData: [{name, labels, values}], msgBar? }
+ * data: { title, sub?, chartData: [{name, labels, values}], insights?, insightTitle?, msgBar? }
  */
 function lineChartSlide(pres, s, data, C = DEFAULT_THEME) {
-  const { title, sub = '', colors, msgBar = '', footerLabel, footerNum } = data;
+  const { title, sub = '', colors, insights, insightTitle, msgBar = '', footerLabel, footerNum } = data;
   const chartData = data.chartData || data.series || [];
   s.background = { color: C.white };
   addHeader(s, title, sub, C);
 
-  const chartH = msgBar ? 3.5 : 4.0;
+  const layout = _getChartLayout(msgBar, insights);
   s.addChart(pres.charts.LINE, chartData, {
-    x: 0.28, y: 1.08, w: 9.44, h: chartH,
+    x: layout.chartX, y: layout.chartY, w: layout.chartW, h: layout.chartH,
     chartColors: colors || [C.navy, C.teal, C.navyL, C.gold],
     chartArea: { fill: { color: C.bgLight }, roundedCorners: false },
     catAxisLabelColor: C.textMid,
@@ -1342,6 +1419,9 @@ function lineChartSlide(pres, s, data, C = DEFAULT_THEME) {
     showLegend: chartData.length > 1,
     legendPos: 'b',
   });
+  if (insights && insights.length) {
+    _addInsightPanel(s, layout.panelX, layout.panelY, layout.panelW, layout.panelH, insights, insightTitle || 'Key Insights', C);
+  }
 
   if (msgBar) addMsgBar(s, msgBar, C);
   addFooter(s, footerNum, '', footerLabel, C);
@@ -1349,17 +1429,17 @@ function lineChartSlide(pres, s, data, C = DEFAULT_THEME) {
 
 /**
  * hBarChartSlide - 横棒グラフ
- * data: { title, sub?, chartData: [{name, labels, values}], msgBar? }
+ * data: { title, sub?, chartData: [{name, labels, values}], insights?, insightTitle?, msgBar? }
  */
 function hBarChartSlide(pres, s, data, C = DEFAULT_THEME) {
-  const { title, sub = '', colors, msgBar = '', footerLabel, footerNum } = data;
+  const { title, sub = '', colors, insights, insightTitle, msgBar = '', footerLabel, footerNum } = data;
   const chartData = data.chartData || data.series || [];
   s.background = { color: C.white };
   addHeader(s, title, sub, C);
 
-  const chartH = msgBar ? 3.5 : 4.0;
+  const layout = _getChartLayout(msgBar, insights);
   s.addChart(pres.charts.BAR, chartData, {
-    x: 0.28, y: 1.08, w: 9.44, h: chartH, barDir: 'bar',
+    x: layout.chartX, y: layout.chartY, w: layout.chartW, h: layout.chartH, barDir: 'bar',
     chartColors: colors || [C.navy, C.teal, C.navyL, C.gold],
     chartArea: { fill: { color: C.bgLight }, roundedCorners: false },
     catAxisLabelColor: C.textMid,
@@ -1371,6 +1451,9 @@ function hBarChartSlide(pres, s, data, C = DEFAULT_THEME) {
     showLegend: chartData.length > 1,
     legendPos: 'b',
   });
+  if (insights && insights.length) {
+    _addInsightPanel(s, layout.panelX, layout.panelY, layout.panelW, layout.panelH, insights, insightTitle || 'Key Insights', C);
+  }
 
   if (msgBar) addMsgBar(s, msgBar, C);
   addFooter(s, footerNum, '', footerLabel, C);
@@ -1378,23 +1461,371 @@ function hBarChartSlide(pres, s, data, C = DEFAULT_THEME) {
 
 /**
  * pieChartSlide - 円グラフ
- * data: { title, sub?, chartData: [{name, labels, values}], msgBar? }
+ * data: { title, sub?, chartData: [{name, labels, values}], insights?, insightTitle?, msgBar? }
  */
 function pieChartSlide(pres, s, data, C = DEFAULT_THEME) {
-  const { title, sub = '', colors, msgBar = '', footerLabel, footerNum } = data;
+  const { title, sub = '', colors, insights, insightTitle, msgBar = '', footerLabel, footerNum } = data;
   const chartData = data.chartData || data.series || [];
   s.background = { color: C.white };
   addHeader(s, title, sub, C);
 
-  const chartH = msgBar ? 3.5 : 4.0;
+  const layout = _getChartLayout(msgBar, insights);
+  const hasInsights = !!(insights && insights.length);
   s.addChart(pres.charts.PIE, chartData, {
-    x: 1.5, y: 1.08, w: 7.0, h: chartH,
+    x: hasInsights ? layout.chartX : 1.5, y: 1.08, w: hasInsights ? layout.chartW : 7.0, h: layout.chartH,
     chartColors: colors || [C.navy, C.teal, C.navyL, C.gold, 'A8C8D8'],
     chartArea: { fill: { color: C.white }, roundedCorners: false },
     showPercent: true,
     showLegend: true,
-    legendPos: 'r',
+    legendPos: hasInsights ? 'b' : 'r',
     dataLabelColor: C.white,
+  });
+  if (hasInsights) {
+    _addInsightPanel(s, layout.panelX, layout.panelY, layout.panelW, layout.panelH, insights, insightTitle || 'Key Insights', C);
+  }
+
+  if (msgBar) addMsgBar(s, msgBar, C);
+  addFooter(s, footerNum, '', footerLabel, C);
+}
+
+/**
+ * chartWithInsight - 任意のチャート + インサイトパネル
+ * data: { title, sub?, chartType: 'BAR'|'LINE'|'PIE'|'AREA', chartData, chartOpts?, insights, insightTitle?, msgBar? }
+ */
+function chartWithInsight(pres, s, data, C = DEFAULT_THEME) {
+  const { title, sub = '', chartType = 'BAR', chartData = [], chartOpts = {}, insights = [], insightTitle, msgBar = '', footerLabel, footerNum } = data;
+  s.background = { color: C.white };
+  addHeader(s, title, sub, C);
+
+  const layout = _getChartLayout(msgBar, insights);
+  const hasInsights = !!(insights && insights.length);
+  const resolvedType = pres.charts[chartType];
+  const baseOpts = {
+    x: layout.chartX,
+    y: layout.chartY,
+    w: layout.chartW,
+    h: layout.chartH,
+    chartColors: chartOpts.chartColors || [C.navy, C.teal, C.navyL, C.gold],
+    chartArea: chartOpts.chartArea || { fill: { color: chartType === 'PIE' ? C.white : C.bgLight }, roundedCorners: false },
+    catAxisLabelColor: chartOpts.catAxisLabelColor || C.textMid,
+    valAxisLabelColor: chartOpts.valAxisLabelColor || C.textMid,
+    valGridLine: chartOpts.valGridLine || { color: C.border, size: 0.5 },
+    catGridLine: chartOpts.catGridLine || { style: 'none' },
+    legendPos: chartType === 'PIE' ? 'b' : 'b',
+    showLegend: chartOpts.showLegend != null ? chartOpts.showLegend : chartData.length > 1,
+    showValue: chartOpts.showValue != null ? chartOpts.showValue : chartType === 'BAR',
+    dataLabelColor: chartOpts.dataLabelColor || (chartType === 'PIE' ? C.white : C.textDark),
+  };
+
+  if (chartType === 'BAR') baseOpts.barDir = 'col';
+  if (chartType === 'LINE' || chartType === 'AREA') {
+    baseOpts.lineSmooth = chartOpts.lineSmooth != null ? chartOpts.lineSmooth : false;
+    baseOpts.lineSize = chartOpts.lineSize || 3;
+    baseOpts.showValue = chartOpts.showValue != null ? chartOpts.showValue : false;
+  }
+  if (chartType === 'PIE') {
+    baseOpts.showPercent = chartOpts.showPercent != null ? chartOpts.showPercent : true;
+    baseOpts.showLegend = true;
+  }
+
+  s.addChart(resolvedType, chartData, { ...baseOpts, ...chartOpts, x: layout.chartX, y: layout.chartY, w: layout.chartW, h: layout.chartH });
+  if (hasInsights) {
+    _addInsightPanel(s, layout.panelX, layout.panelY, layout.panelW, layout.panelH, insights, insightTitle || 'Key Insights', C);
+  }
+
+  if (msgBar) addMsgBar(s, msgBar, C);
+  addFooter(s, footerNum, '', footerLabel, C);
+}
+
+/**
+ * stackedBarChart - 積み上げ棒グラフ
+ * data: { title, sub?, series, colors?, percent?, horizontal?, insights?, msgBar? }
+ */
+function stackedBarChart(pres, s, data, C = DEFAULT_THEME) {
+  const { title, sub = '', series = [], colors, percent = false, horizontal = false, insights, insightTitle, msgBar = '', footerLabel, footerNum } = data;
+  s.background = { color: C.white };
+  addHeader(s, title, sub, C);
+
+  const layout = _getChartLayout(msgBar, insights);
+  s.addChart(pres.charts.BAR, series, {
+    x: layout.chartX,
+    y: layout.chartY,
+    w: layout.chartW,
+    h: layout.chartH,
+    barDir: horizontal ? 'bar' : 'col',
+    barGrouping: percent ? 'percentStacked' : 'stacked',
+    chartColors: colors || [C.navy, C.teal, C.navyL, C.gold],
+    chartArea: { fill: { color: C.bgLight }, roundedCorners: false },
+    catAxisLabelColor: C.textMid,
+    valAxisLabelColor: C.textMid,
+    valGridLine: { color: C.border, size: 0.5 },
+    catGridLine: { style: 'none' },
+    showLegend: true,
+    legendPos: 'b',
+    showValue: true,
+    dataLabelColor: C.textDark,
+  });
+  if (insights && insights.length) {
+    _addInsightPanel(s, layout.panelX, layout.panelY, layout.panelW, layout.panelH, insights, insightTitle || 'Key Insights', C);
+  }
+
+  if (msgBar) addMsgBar(s, msgBar, C);
+  addFooter(s, footerNum, '', footerLabel, C);
+}
+
+/**
+ * executiveSummary - エグゼクティブサマリー
+ * data: { title, sub?, points: [{lead, details?:[string]}], msgBar? }
+ */
+function executiveSummary(pres, s, data, C = DEFAULT_THEME) {
+  const { title, sub = '', points = [], msgBar = '', footerLabel, footerNum } = data;
+  s.background = { color: C.white };
+  addHeader(s, title, sub, C);
+
+  const items = points.slice(0, 4);
+  const SX = 0.28, SY = 1.08;
+  const gap = 0.10;
+  const totalH = msgBar ? 3.35 : 3.9;
+  const rowH = items.length ? (totalH - gap * (items.length - 1)) / items.length : totalH;
+
+  items.forEach((point, i) => {
+    const y = SY + i * (rowH + gap);
+    s.addShape('rect', { x: SX, y, w: 9.44, h: rowH, fill: { color: C.bgLight }, line: { color: C.border, pt: 0.75 }, shadow: mkShadow() });
+    s.addShape('rect', { x: SX, y, w: 0.10, h: rowH, fill: { color: C.teal }, line: { color: C.teal } });
+    s.addText(point.lead || '', {
+      x: SX + 0.22, y: y + 0.08, w: 9.0, h: 0.34,
+      fontSize: 13, bold: true, color: C.navy, fontFace: C.font, valign: 'top', margin: 0
+    });
+
+    const details = (point.details || []).slice(0, 3);
+    details.forEach((detail, di) => {
+      const dy = y + 0.48 + di * 0.30;
+      s.addText('\u2022', {
+        x: SX + 0.28, y: dy - 0.01, w: 0.16, h: 0.20,
+        fontSize: 12, color: C.teal, fontFace: C.font, margin: 0
+      });
+      s.addText(detail, {
+        x: SX + 0.46, y: dy, w: 8.7, h: 0.22,
+        fontSize: 10.5, color: C.textMid, fontFace: C.font, valign: 'top', margin: 0
+      });
+    });
+  });
+
+  if (msgBar) addMsgBar(s, msgBar, C);
+  addFooter(s, footerNum, '', footerLabel, C);
+}
+
+/**
+ * scopeSlide - スコープ定義
+ * data: { title, sub?, inScope: {label?, items:[]}, outScope: {label?, items:[]}, msgBar? }
+ */
+function scopeSlide(pres, s, data, C = DEFAULT_THEME) {
+  const { title, sub = '', inScope = {}, outScope = {}, msgBar = '', footerLabel, footerNum } = data;
+  s.background = { color: C.white };
+  addHeader(s, title, sub, C);
+
+  const SX = 0.28, SY = 1.08, gap = 0.18;
+  const colW = (9.44 - gap) / 2;
+  const colH = msgBar ? 3.35 : 3.9;
+  const cols = [
+    {
+      x: SX,
+      label: inScope.label || 'In Scope',
+      icon: '✓',
+      iconColor: C.green,
+      fill: 'EAF5EF',
+      line: C.green,
+      items: inScope.items || [],
+    },
+    {
+      x: SX + colW + gap,
+      label: outScope.label || 'Out of Scope',
+      icon: '✗',
+      iconColor: C.textMute,
+      fill: C.bgLight,
+      line: C.border,
+      items: outScope.items || [],
+    },
+  ];
+
+  cols.forEach((col) => {
+    s.addShape('rect', { x: col.x, y: SY, w: colW, h: colH, fill: { color: col.fill }, line: { color: col.line, pt: 1 }, shadow: mkShadow() });
+    s.addShape('rect', { x: col.x, y: SY, w: colW, h: 0.46, fill: { color: C.navy }, line: { color: C.navy } });
+    s.addText(col.icon, {
+      x: col.x + 0.14, y: SY + 0.04, w: 0.28, h: 0.34,
+      fontSize: 16, bold: true, color: col.iconColor, fontFace: C.font, align: 'center', valign: 'middle', margin: 0
+    });
+    s.addText(col.label, {
+      x: col.x + 0.48, y: SY + 0.03, w: colW - 0.60, h: 0.36,
+      fontSize: 13, bold: true, color: C.white, fontFace: C.font, valign: 'middle', margin: 0
+    });
+    col.items.slice(0, 5).forEach((item, i) => {
+      const iy = SY + 0.62 + i * 0.56;
+      s.addShape('ellipse', {
+        x: col.x + 0.18, y: iy + 0.11, w: 0.10, h: 0.10,
+        fill: { color: col.iconColor }, line: { color: col.iconColor }
+      });
+      s.addText(String(item), {
+        x: col.x + 0.36, y: iy, w: colW - 0.52, h: 0.30,
+        fontSize: 11.5, color: C.textDark, fontFace: C.font, valign: 'middle', margin: 0
+      });
+    });
+  });
+
+  if (msgBar) addMsgBar(s, msgBar, C);
+  addFooter(s, footerNum, '', footerLabel, C);
+}
+
+/**
+ * waterfallChart - ウォーターフォールチャート
+ * data: { title, sub?, startValue, startLabel, steps:[{label, value, color?}], endLabel?, unit?, showConnectors?, insights?, msgBar? }
+ */
+function waterfallChart(pres, s, data, C = DEFAULT_THEME) {
+  const { title, sub = '', startValue = 0, startLabel = 'Start', steps = [], endLabel = 'End', unit = '', showConnectors = true, insights, insightTitle, msgBar = '', footerLabel, footerNum } = data;
+  s.background = { color: C.white };
+  addHeader(s, title, sub, C);
+
+  const layout = _getChartLayout(msgBar, insights);
+  const chartX = layout.chartX;
+  const chartY = layout.chartY;
+  const chartW = layout.chartW;
+  const chartH = layout.chartH;
+  const plotBottom = chartY + chartH - 0.36;
+  const plotTop = chartY + 0.32;
+  const plotH = plotBottom - plotTop;
+  const series = [{ label: startLabel, value: startValue, type: 'anchor', color: C.navy }];
+  let running = startValue;
+  steps.forEach((step) => {
+    series.push({
+      label: step.label,
+      value: step.value,
+      type: 'delta',
+      color: step.color || (step.value >= 0 ? C.green : C.red),
+      base: running,
+    });
+    running += step.value;
+  });
+  series.push({ label: endLabel, value: running, type: 'anchor', color: C.navy });
+
+  const maxVal = Math.max(...series.map((item) => item.type === 'delta' ? Math.max(item.base, item.base + item.value) : item.value), 0);
+  const minVal = Math.min(...series.map((item) => item.type === 'delta' ? Math.min(item.base, item.base + item.value) : 0), 0);
+  const range = Math.max(maxVal - minVal, 1);
+  const zeroY = plotBottom - ((0 - minVal) / range) * plotH;
+
+  s.addShape('rect', { x: chartX, y: chartY, w: chartW, h: chartH, fill: { color: C.bgLight }, line: { color: C.border, pt: 1 }, shadow: mkShadow() });
+  s.addShape('line', { x: chartX + 0.16, y: zeroY, w: chartW - 0.32, h: 0, line: { color: C.border, pt: 1 } });
+
+  const n = series.length;
+  const gap = 0.08;
+  const barW = Math.max((chartW - 0.24 - gap * (n - 1)) / n, 0.30);
+  let prevTopY = null;
+  let prevRightX = null;
+
+  series.forEach((item, i) => {
+    const x = chartX + 0.12 + i * (barW + gap);
+    let barTop;
+    let barBottom;
+    if (item.type === 'delta') {
+      const fromY = plotBottom - ((item.base - minVal) / range) * plotH;
+      const toY = plotBottom - (((item.base + item.value) - minVal) / range) * plotH;
+      barTop = Math.min(fromY, toY);
+      barBottom = Math.max(fromY, toY);
+    } else {
+      const anchorY = plotBottom - ((item.value - minVal) / range) * plotH;
+      barTop = Math.min(anchorY, zeroY);
+      barBottom = Math.max(anchorY, zeroY);
+    }
+    const barH = Math.max(barBottom - barTop, 0.04);
+    s.addShape('rect', { x, y: barTop, w: barW, h: barH, fill: { color: item.color }, line: { color: item.color } });
+
+    const valueLabel = `${item.type === 'delta' && item.value > 0 ? '+' : ''}${item.type === 'delta' ? item.value : item.value}${unit}`;
+    s.addText(valueLabel, {
+      x: x - 0.05, y: barTop - 0.22, w: barW + 0.10, h: 0.18,
+      fontSize: 9.5, bold: true, color: item.color, fontFace: C.font, align: 'center', margin: 0
+    });
+    s.addText(item.label, {
+      x: x - 0.05, y: plotBottom + 0.08, w: barW + 0.10, h: 0.30,
+      fontSize: 9.5, color: C.textMid, fontFace: C.font, align: 'center', valign: 'top', margin: 0
+    });
+
+    const connectorY = item.type === 'delta'
+      ? plotBottom - (((item.base + item.value) - minVal) / range) * plotH
+      : plotBottom - ((item.value - minVal) / range) * plotH;
+    if (showConnectors && prevTopY != null && prevRightX != null) {
+      s.addShape('line', {
+        x: prevRightX, y: prevTopY, w: x - prevRightX, h: connectorY - prevTopY,
+        line: { color: C.textMute, pt: 1, dash: 'dash' }
+      });
+    }
+    prevRightX = x + barW;
+    prevTopY = connectorY;
+  });
+
+  if (insights && insights.length) {
+    _addInsightPanel(s, layout.panelX, layout.panelY, layout.panelW, layout.panelH, insights, insightTitle || 'Key Insights', C);
+  }
+  if (msgBar) addMsgBar(s, msgBar, C);
+  addFooter(s, footerNum, '', footerLabel, C);
+}
+
+/**
+ * hBarWithExplanation - 横棒比較 + 説明
+ * data: { title, sub?, legend?:[{name, color?}], rows:[{label, icon?, values:[], explanation?}], unit?, maxValue?, msgBar? }
+ */
+function hBarWithExplanation(pres, s, data, C = DEFAULT_THEME) {
+  const { title, sub = '', legend = [], rows = [], unit = '', maxValue, msgBar = '', footerLabel, footerNum } = data;
+  s.background = { color: C.white };
+  addHeader(s, title, sub, C);
+
+  const legendItems = legend.length ? legend.slice(0, 2) : [
+    { name: 'Series 1', color: C.navy },
+    { name: 'Series 2', color: C.teal },
+  ];
+  const items = rows.slice(0, 4);
+  const computedMax = maxValue != null ? maxValue : Math.max(...items.flatMap((row) => row.values || []), 1);
+  const SX = 0.28, SY = 1.08;
+  const totalH = msgBar ? 3.35 : 3.9;
+  const rowGap = 0.08;
+  const rowH = items.length ? (totalH - 0.38 - rowGap * (items.length - 1)) / items.length : totalH;
+  const labelW = 2.0;
+  const barW = 3.0;
+  const explanationW = 4.04;
+
+  legendItems.forEach((item, i) => {
+    const lx = SX + i * 1.5;
+    s.addShape('rect', { x: lx, y: SY, w: 0.18, h: 0.12, fill: { color: item.color || (i === 0 ? C.navy : C.teal) }, line: { color: item.color || (i === 0 ? C.navy : C.teal) } });
+    s.addText(item.name, {
+      x: lx + 0.24, y: SY - 0.02, w: 1.2, h: 0.18,
+      fontSize: 9.5, color: C.textMid, fontFace: C.font, valign: 'middle', margin: 0
+    });
+  });
+
+  items.forEach((row, i) => {
+    const y = SY + 0.28 + i * (rowH + rowGap);
+    s.addShape('rect', { x: SX, y, w: 9.44, h: rowH, fill: { color: i % 2 === 0 ? C.bgLight : C.white }, line: { color: C.border, pt: 0.5 } });
+    s.addText(`${row.icon ? `${row.icon} ` : ''}${row.label || ''}`, {
+      x: SX + 0.12, y: y + 0.08, w: labelW - 0.18, h: rowH - 0.16,
+      fontSize: 11.5, bold: true, color: C.navy, fontFace: C.font, valign: 'middle', margin: 0
+    });
+
+    const trackX = SX + labelW;
+    const values = (row.values || []).slice(0, 2);
+    values.forEach((val, vi) => {
+      const by = y + 0.16 + vi * (rowH * 0.32);
+      s.addShape('rect', { x: trackX, y: by, w: barW, h: 0.18, fill: { color: 'E2E8F2' }, line: { color: 'E2E8F2' } });
+      const fillW = Math.max(Math.min((Number(val) || 0) / computedMax, 1), 0) * barW;
+      const fillC = legendItems[vi] && legendItems[vi].color ? legendItems[vi].color : (vi === 0 ? C.navy : C.teal);
+      s.addShape('rect', { x: trackX, y: by, w: fillW, h: 0.18, fill: { color: fillC }, line: { color: fillC } });
+      s.addText(`${val}${unit}`, {
+        x: trackX + barW + 0.08, y: by - 0.03, w: 0.58, h: 0.22,
+        fontSize: 9.5, bold: true, color: fillC, fontFace: C.font, valign: 'middle', margin: 0
+      });
+    });
+
+    s.addText(row.explanation || '', {
+      x: SX + labelW + barW + 0.78, y: y + 0.08, w: explanationW - 0.14, h: rowH - 0.16,
+      fontSize: 10.5, color: C.textMid, fontFace: C.font, valign: 'middle', margin: 0
+    });
   });
 
   if (msgBar) addMsgBar(s, msgBar, C);
@@ -1420,9 +1851,9 @@ module.exports = {
   // タイムライン
   timeline,
   // グラフ
-  barChartSlide, lineChartSlide, hBarChartSlide, pieChartSlide,
+  barChartSlide, lineChartSlide, hBarChartSlide, pieChartSlide, chartWithInsight, stackedBarChart, waterfallChart, hBarWithExplanation,
   // テキスト・統計
-  bigStat, caseStudy, quoteSlide, qaSlide, ranking,
+  bigStat, caseStudy, quoteSlide, qaSlide, ranking, executiveSummary, scopeSlide,
   // ページ固有
   cover, sectionDivider, closing, tableOfContents, companyProfile, memberGrid, logoGrid,
 };

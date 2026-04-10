@@ -1,6 +1,6 @@
 # Template Catalog — slide-templates.js
 
-全37テンプレートのAPI仕様。使用時は必ずここを確認する。
+全43テンプレートのAPI仕様。使用時は必ずここを確認する。
 
 ## 呼び出し規則
 
@@ -23,7 +23,7 @@ T.cover(pres, s, {
   title: 'タイトル',
   subtitle: 'サブタイトル',      // optional
   recipient: '株式会社〇〇 御中',  // optional
-  company: 'eudAImonia',         // optional
+  company: 'Your Company',        // optional
   date: '2026年4月',             // optional
   bgImagePath: '/path/to/img.jpg' // optional: 背景画像
 }, C);
@@ -61,8 +61,8 @@ T.closing(pres, s, {
     { text: '現状ヒアリング' },
     { text: '提案書お送り' },
   ],
-  companyInfo: '株式会社ユーダイモニア\nmasa@eudaimonia.co.jp',  // optional
-  footerLabel: 'eudAImonia'
+  companyInfo: '株式会社〇〇\ninfo@example.com',  // optional
+  footerLabel: 'Your Company'
 }, C);
 // ⚠️ message/contactパラメータは無効。items:[{text}]とcompanyInfoを使う
 ```
@@ -470,7 +470,7 @@ T.qaSlide(pres, s, {
 ```javascript
 T.companyProfile(pres, s, {
   title?: '会社概要',
-  name: '株式会社ユーダイモニア',
+  name: '株式会社〇〇',
   founded?: '2024年',
   description: '会社説明',
   details?: [
@@ -497,6 +497,123 @@ T.logoGrid(pres, s, {
     { path: '/path/to/logo.png', label?: '会社名' },
   ]
 }, C);
+```
+
+---
+
+## コンサルグレード系（McKinseyスタイル）
+
+### chartWithInsight — 任意チャート＋インサイトパネル
+```javascript
+T.chartWithInsight(pres, s, {
+  title: 'タイトル',
+  chartType: 'BAR' | 'LINE' | 'PIE' | 'AREA',  // default: 'BAR'
+  chartData: [
+    { name: '系列名', labels: ['Jan', 'Feb'], values: [10, 20] },
+  ],
+  insights: ['ポイント1', 'ポイント2'],  // 右パネルに表示
+  insightTitle?: 'Key Insights',
+  chartOpts?: {},   // pptxgenjsチャートオプションを直接上書き
+  msgBar?: '注記'
+}, C);
+// ⚠️ 既存4チャート(barChart/lineChart/hBarChart/pieChart)のinsightsパラメータも同等機能あり
+```
+
+### stackedBarChart — 積み上げ棒グラフ
+```javascript
+T.stackedBarChart(pres, s, {
+  title: 'タイトル',
+  series: [                // ← 'chartData'ではなく'series'
+    { name: '事業A', labels: ['2021', '2022'], values: [100, 120] },
+    { name: '事業B', labels: ['2021', '2022'], values: [80, 100] },
+  ],
+  percent?: false,      // true で100%積み上げ
+  horizontal?: false,   // true で横棒
+  colors?: ['XXXXXX'],  // 省略時はデフォルトテーマ色
+  insights?: ['ポイント1'],
+  insightTitle?: 'Key Insights',
+  msgBar?: '注記'
+}, C);
+```
+
+### executiveSummary — エグゼクティブサマリー
+```javascript
+T.executiveSummary(pres, s, {
+  title: 'タイトル',
+  points: [             // 最大4行
+    {
+      lead: '① 太字のリード文（1行）',
+      details: [        // 最大3行のバレット
+        '詳細テキスト1',
+        '詳細テキスト2',
+      ]
+    },
+  ],
+  msgBar?: '注記'
+}, C);
+// ⚠️ pointsの各要素は {lead, details} 形式。{heading, bullets} ではない
+```
+
+### scopeSlide — スコープ定義（✓/✗）
+```javascript
+T.scopeSlide(pres, s, {
+  title: 'タイトル',
+  inScope: {
+    label?: '対象範囲（In Scope）',  // optional: ヘッダーラベル
+    items: ['項目1', '項目2'],        // 文字列配列
+  },
+  outScope: {
+    label?: '対象外（Out of Scope）',
+    items: ['項目1', '項目2'],
+  },
+  msgBar?: '注記'
+}, C);
+// ⚠️ inScope/outScope は配列ではなくオブジェクト形式
+```
+
+### waterfallChart — ウォーターフォールチャート
+```javascript
+T.waterfallChart(pres, s, {
+  title: 'タイトル',
+  startValue: 500,        // 開始値
+  startLabel: '前期売上',  // 開始バーのラベル
+  steps: [               // 増減ステップ
+    { label: '新規顧客', value: 120 },          // 正: 緑
+    { label: '解約', value: -60 },             // 負: 赤
+    { label: '一時費用', value: -30, color?: 'XXXXXX' }, // 色指定可
+  ],
+  endLabel?: '今期売上',   // 合計バーのラベル
+  unit?: 'M',            // 値ラベルの単位（例: 'M', '円'）
+  showConnectors?: true, // バー間の破線コネクタ
+  insights?: ['ポイント1'],
+  insightTitle?: 'Key Insights',
+  msgBar?: '注記'
+}, C);
+// ⚠️ 'items'形式ではなく startValue + steps + endLabel 形式
+```
+
+### hBarWithExplanation — 横棒比較＋解説
+```javascript
+T.hBarWithExplanation(pres, s, {
+  title: 'タイトル',
+  legend: [                        // optional: 凡例（省略時: Series 1/2）
+    { name: '自社', color: C.navy },
+    { name: '競合A', color: C.teal },
+  ],
+  rows: [                          // 最大4行
+    {
+      label: '製品品質スコア',
+      values: [88, 72],            // 数値配列（最大2系列）
+      icon?: '🔵',                 // optional: 行頭アイコン
+      explanation?: '解説テキスト（右側に表示）',
+    },
+  ],
+  maxValue?: 100,  // 全行共通の最大値（省略時: valuesの最大値から自動計算）
+  unit?: '点',     // 全行共通の単位表示
+  msgBar?: '注記'
+}, C);
+// ⚠️ rows[].bars[] 形式ではなく rows[].values[] 形式
+// ⚠️ maxValue/unit は全行共通。行ごとに変えたい場合は値を正規化して渡す
 ```
 
 ---

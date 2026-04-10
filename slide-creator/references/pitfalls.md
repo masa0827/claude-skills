@@ -96,7 +96,7 @@ T.closing(pres, s, {
     { text: '30分のオンライン相談' },
     { text: 'ヒアリング' },
   ],
-  companyInfo: 'eudAImonia / masa@eudaimonia.co.jp',
+  companyInfo: 'Your Company / info@example.com',
 }, C);
 ```
 

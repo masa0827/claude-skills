@@ -359,12 +359,12 @@ slidePositioningMap(pres, s5, {
   xLabel: { low: 'アナログ対応', high: 'デジタル対応強' },
   yLabel: { low: '単一ジャンル', high: '横断仲介力強' },
   dots: [
-    { x: 0.75, y: 0.8, label: 'SURF&SNOW', highlight: true },
+    { x: 0.75, y: 0.8, label: '自社サービス', highlight: true },
     { x: 0.4, y: 0.6, label: '競合A' },
     { x: 0.8, y: 0.3, label: '競合B' },
     { x: 0.2, y: 0.4, label: '競合C' },
   ],
-  msgBar: 'SURF&SNOWは横断仲介力でユニークなポジションを持つ'
+  msgBar: '自社サービスは横断仲介力でユニークなポジションを持つ'
 }, C);
 ```
 

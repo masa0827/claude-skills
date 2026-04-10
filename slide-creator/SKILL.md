@@ -12,7 +12,7 @@ description: "Use this skill whenever the user asks to create, generate, or buil
 
 スライド制作は「上流→確認→下流」の順で進める。上流を省略すると「動く資料」は作れても「伝わる資料」にならない。この順番は絶対に守る。
 
-**ツール**: pptxgenjs + slide-templates.js（37テンプレートライブラリ）
+**ツール**: pptxgenjs + slide-templates.js（43テンプレートライブラリ）
 **テンプレートパス**: `{{SKILL_DIR}}/lib/slide-templates.js`
 **出力形式**: `.pptx`（LAYOUT_16x9: 10"×5.625"）
 
@@ -27,7 +27,7 @@ description: "Use this skill whenever the user asks to create, generate, or buil
 - 読む場面（会議で説明/メールで送付/自分で読む）
 
 ### 1-2. 資料全体で「何を伝えるか」を1文で言語化
-例：「SURF&SNOWはインバウンド需要の取りこぼしが最大の課題であり、eudAImoniaが提供する仕組みでそれを解決できる」
+例：「〇〇サービスはインバウンド需要の取りこぼしが最大の課題であり、当社が提供する仕組みでそれを解決できる」
 
 この1文が決まらないうちはスライド構成に入らない。
 
@@ -270,9 +270,9 @@ s.addText('★ここがポイント', { ... });
 
 ## 参考ファイル
 
-- `references/template-catalog.md` — 全37テンプレートのAPI仕様と使用例
+- `references/template-catalog.md` — 全43テンプレートのAPI仕様と使用例
 - `references/composite-layouts.md` — 複合レイアウトのコードパターン集（グラフ+解説、2グラフ並列、ポジショニングマップ等）
 - `references/pitfalls.md` — 既知のバグと回避策（チャートラベル修正など）
+- `references/template_showcase.pptx` — 全43テンプレートのショーケースPPTX（ダミーデータ使用。実在する企業名・個人名は含まない）
 - `lib/slide-templates.js` — テンプレートライブラリ本体
-- `../pptx/generate_showcase.js` — 全テンプレートのデモコード（参照用）
-- `../pptx/generate_implay_v6.js` — 実際の制作スクリプト例（参照用）
+- `../pptx/generate_showcase.js` — ショーケース生成スクリプト（参照用）
