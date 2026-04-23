@@ -19,6 +19,7 @@ npx degit masa0827/claude-skills/<skill-name> /path/to/project/.claude/skills/<s
 | [slide-creator](./slide-creator/) | PPTX形式のプレゼン資料・提案書を生成 | `npx degit masa0827/claude-skills/slide-creator .claude/skills/slide-creator` |
 | [ai-writer](./ai-writer/) | AI臭ゼロの自然な日本語文章を生成 | `npx degit masa0827/claude-skills/ai-writer .claude/skills/ai-writer` |
 | [x-research](./x-research/) | Grok x_searchでXのリアルタイム情報を収集しContext Packを生成 | `npx degit masa0827/claude-skills/x-research .claude/skills/x-research` |
+| [storyboard-creator](./storyboard-creator/) | 動画企画からラフ絵コンテ生成用プロンプト（GPT Image 2向け）を組み立てる | `npx degit masa0827/claude-skills/storyboard-creator .claude/skills/storyboard-creator` |
 
 ## 動作要件
 
